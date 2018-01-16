@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="BookingMapper">
+ 	
+ 	<!-- Purpose of resultMap is mapping resultSet of SQL -->
+
+   	 <resultMap id ="bookingSelectMap" type="booking">
+  	
+  		<result property="bookingNo" 		column="booking_no" 		jdbcType="CHAR"/>
+  		<result property="impId" 			column="imp_id" 			jdbcType="VARCHAR"/>
+  		<result property="userId" 			column="user_id" 			jdbcType="VARCHAR"/>
+  		<result property="screenContentNo" 	column="screencontent_no" 	jdbcType="NUMERIC"/>
+  		<result property="bookingRegDate" 	column="booking_regdate" 	jdbcType="DATE"/>
+  		<result property="headCount" 		column="head_count" 		jdbcType="NUMERIC"/>	
+  		<result property="totalTicketPrice" column="total_ticketprice"	jdbcType="NUMERIC"/>
+		<result property="bookingSeatNo" 	column="bookingseat_no"		jdbcType="VARCHAR"/>		
+  		<result property="qrUrl" 			column="qr_url" 			jdbcType="VARCHAR"/>
+  		
+  		<result property="movie.movieNo"    			column="movie_no" 	 	 jdbcType="VARCHAR"/>
+  		<result property="movie.movieNm"    			column="movie_title" 	 jdbcType="VARCHAR"/>
+  		<result property="movie.postUrl"    			column="poster"		 	 jdbcType="VARCHAR"/>
+  		<result property="screenContent.screenDate"  	column="screen_date" 	 jdbcType="VARCHAR"/>
+  		<result property="screenContent.screenOpenTime" column="screen_opentime" jdbcType="VARCHAR"/>
+  		<result property="screenContent.previewFlag"    column="preview_flag" 	 jdbcType="VARCHAR"/>
+  		<result property="screenContent.previewTitle"   column="preview_title" 	 jdbcType="VARCHAR"/>
+  		<result property="screenContent.inviteActor"    column="invite_actor" 	 jdbcType="VARCHAR"/>
+  		<result property="screenContent.screenTheater"  column="screen_theater"  jdbcType="VARCHAR"/>
+
+  	</resultMap>
+  	
+  	<insert id="addBooking" parameterType="booking">
+  		INSERT 
+  		INTO booking VALUES ('b'||seq_booking_booking_no.nextval, #{impId}, #{userId}, #{screenContentNo}, SYSDATE, #{headCount}, #{totalTicketPrice}, #{bookingSeatNo}, #{qrUrl})
+  	</insert>
+  		
+  	<select id="getBooking" parameterType="string" resultMap="bookingSelectMap" >
+  		SELECT b.booking_no, b.imp_id, b.user_id, b.screencontent_no,  b.head_count, b.total_ticketprice, b.bookingseat_no, b.qr_url, m.movie_title, 
+  				s.screen_date, TO_CHAR(s.screen_opentime,'YYYY/MM/DD HH24:MI') as screen_opentime, 
+  				TO_CHAR(b.booking_regdate,'YYYY/MM/DD HH24:MI') as booking_regdate, s.screen_theater, s.preview_flag, s.preview_title, s.invite_actor 
+		FROM booking b, screencontent s, movie m
+		WHERE b.booking_no = #{value}
+ 		AND b.screencontent_no = s. screencontent_no 
+		AND s.movie_no = m.movie_no		 							
+  	</select>
+  	
+  	 <select id="getBookingByInfo" parameterType="booking" resultMap="bookingSelectMap" >
+  		 SELECT b.*, m.movie_title, m.movie_no, s.screen_date, s.screen_opentime, s.preview_flag, s.preview_title, s.invite_actor, s.screen_theater   
+		 FROM booking b, screencontent s, movie m 
+  		 WHERE b.screencontent_no = #{screenContentNo} AND b.imp_id = #{impId}
+  		 AND b.screencontent_no = s.screencontent_no 
+		 AND s.movie_no = m.movie_no								
+  	</select>
+  	
+  	<sql id="bookingList">
+  	 SELECT	b.booking_no, b.imp_id, b.user_id, b.screencontent_no, TO_CHAR(b.booking_regdate,'YYYY/MM/DD HH24:MI') as booking_regdate,
+  	  b.head_count, b.total_ticketprice, b.bookingseat_no, b.qr_url,
+  	  m.movie_title, m.movie_no, s.screen_date, TO_CHAR(s.screen_opentime,'YYYY/MM/DD HH24:MI') as screen_opentime, s.preview_flag, s.preview_title, s.invite_actor 
+		FROM booking b, screencontent s, movie m
+  		<where>
+  			b.screencontent_no = s.screencontent_no
+  			AND s.movie_no = m.movie_no
+  			<if test="searchCondition!=null " >
+  				<if test='searchCondition.equals("userId")'>
+  						AND user_id	like '%'|| #{searchKeyword}||'%'
+  				</if> 
+	  				<if test='searchCondition.equals("movieTitle")'>
+  						AND m.movie_title like '%'|| #{searchKeyword}||'%'
+  				</if>  				
+  				<if test='searchCondition.equals("bookingNo")' >
+  						AND b.booking_no = #{searchKeyword}
+  				</if> 
+  			</if>
+  		</where> 												 
+		ORDER BY
+		<if test="searchKeyword2 == 'asc' ">s.screen_opentime asc</if> 
+		<if test="searchKeyword2 == 'desc' ">s.screen_opentime desc</if> 
+		<if test="searchKeyword2 != 'asc' and  searchKeyword2 != 'desc' ">b.booking_no</if> 																
+  	</sql>
+  	
+  	<select id="getBookingList" parameterType="search" resultMap="bookingSelectMap">
+		SELECT *
+  		FROM ( SELECT inner_table.* , ROWNUM AS row_seq
+  						FROM (<include refid="bookingList"/> ) inner_table
+
+					WHERE ROWNUM &lt;= #{endRowNum} )
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum} 
+  	</select>
+  	
+  	<select id="getAdminTotalCount" resultType="int">
+  		SELECT COUNT(*)
+  		FROM ( <include refid="bookingList"/> )
+  	</select>
+  	
+  	<select id="getUserBookingList" parameterType="map" resultMap="bookingSelectMap">
+		SELECT *
+  		FROM ( SELECT inner_table.booking_no, inner_table.imp_id, inner_table.user_id, inner_table.screencontent_no, 
+      				  inner_table.booking_regdate, inner_table.head_count, inner_table.total_ticketprice, inner_table.bookingseat_no, inner_table.qr_url,
+      				  inner_table.movie_no, to_char(inner_table.screen_opentime, 'YYYY-MM-DD HH24:MI') screen_opentime, inner_table.preview_flag, inner_table.preview_title, inner_table.screen_date, 
+      				  inner_table.screen_theater, inner_table.movie_title, inner_table.poster, ROWNUM AS row_seq  
+					  FROM	(SELECT inner.booking_no, inner.imp_id, inner.user_id, inner.screencontent_no, 
+	      							inner.booking_regdate, inner.head_count, inner.total_ticketprice, inner.bookingseat_no, inner.qr_url,
+               						inner.movie_no, inner.screen_opentime, inner.preview_flag, inner.screen_date, inner.preview_title, inner.screen_theater, m.movie_title, m.poster
+							   FROM (SELECT b.booking_no, b.imp_id, b.user_id, b.screencontent_no, b.booking_regdate, b.head_count, b.total_ticketprice, b.bookingseat_no, b.qr_url, s.movie_no, s.screen_opentime, s.preview_title, s.screen_date, s.preview_flag, s.screen_theater
+									 FROM booking b,screencontent s 
+									 WHERE b.screencontent_no = s.screencontent_no AND b.user_Id = #{user.userId})inner, movie m
+			   				   WHERE inner.movie_no = m.movie_no)inner_table
+			   <if test="search.searchCondition != null or search.searchCondition != ''">
+				<if test="search.searchCondition == 'now'">	  
+			   WHERE TO_DATE(inner_table.screen_opentime, 'YYYY/MM/DD HH24:MI') <![CDATA[>=]]> TO_DATE(SYSDATE,'YYYY/MM/DD HH24:MI') AND ROWNUM &lt;= #{search.endRowNum} )
+			    </if>
+			    <if test="search.searchCondition == 'past'">
+			   WHERE TO_DATE(inner_table.screen_opentime, 'YYYY/MM/DD HH24:MI') <![CDATA[<]]> TO_DATE(SYSDATE,'YYYY/MM/DD HH24:MI') AND ROWNUM &lt;= #{search.endRowNum} )
+			    </if>
+			  </if>	
+			    
+		WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum} 
+  	</select>
+  	
+  	<delete id="deleteBooking" parameterType="java.lang.String">
+  		DELETE
+  	 	FROM booking
+  	 	WHERE booking_no = #{value}
+  	</delete>
+  	
+ 	<select id="getTotalCount" parameterType="map" resultType="int">
+ 		SELECT COUNT(*) 
+		FROM booking b, screencontent s 
+		WHERE b.screencontent_no = s.screencontent_no 
+      		  AND user_id = #{user.userId}
+      		  <if test="search.searchCondition != null or search.searchCondition != ''">
+				<if test="search.searchCondition == 'now'">	  
+	      		  	AND TO_DATE(s.screen_opentime,'YYYY/MM/DD HH24:MI') <![CDATA[>=]]> TO_DATE(SYSDATE,'YYYY/MM/DD HH24:MI')
+	 			</if>
+				<if test="search.searchCondition == 'past'">
+				  	AND TO_DATE(s.screen_opentime,'YYYY/MM/DD HH24:MI') <![CDATA[<]]> TO_DATE(SYSDATE,'YYYY/MM/DD HH24:MI')
+				</if>
+			  </if>	
+	</select>
+  	
+</mapper>

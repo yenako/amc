@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+      PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+      "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MovieCommentMapper">
+
+   <resultMap type="movieComment" id="movieCommentSelectMap">
+
+      <result property="movieCommentNo" column="moviecomment_no" jdbcType="NUMERIC" />
+      <result property="user.userId" column="user_id" jdbcType="VARCHAR" />
+      <result property="movie.movieNo" column="movie_no" jdbcType="NUMERIC" />
+      <result property="movieComment" column="moviecomment" jdbcType="VARCHAR" />
+      <result property="movieCommentRegDate" column="moviecomment_regdate" jdbcType="DATE" />
+      <result property="blindCommentFlag" column="blindcomment_flag" jdbcType="CHAR" />
+      
+   </resultMap>
+   
+   <insert id="addMovieComment" parameterType="movieComment">
+	INSERT INTO moviecomment(moviecomment_no, user_id, movie_no, moviecomment, moviecomment_regdate, blindcomment_flag)
+	VALUES(seq_movie_comment_no.nextval, #{user.userId}, #{movie.movieNo}, #{movieComment}, SYSDATE,'N')
+	</insert>
+	
+	<update id="updateMovieComment" parameterType="movieComment">
+	UPDATE moviecomment
+		<set>
+			moviecomment = #{movieComment}
+		</set>
+		WHERE moviecomment_no = #{movieCommentNo}
+	</update>
+	
+	<update id="updateBlindCommentFlag" parameterType="movieComment">
+	UPDATE moviecomment
+		<set>
+			<if test='(blindCommentFlag == "Y")'>
+				blindcomment_flag = 'N'
+			</if>
+			<if test='(blindCommentFlag == "N")'>
+				blindcomment_flag = 'Y'
+			</if>
+		</set>
+		WHERE moviecomment_no = #{movieCommentNo}
+	</update>
+	
+		<delete id="deleteMovieComment" parameterType="int">
+		DELETE FROM moviecomment
+		WHERE moviecomment_no = #{movieCommentNo}
+	</delete>
+	
+	<select id="getMovieComment" parameterType="int" resultMap="movieCommentSelectMap"> 
+		SELECT moviecomment_no, user_id, movie_no, moviecomment, 
+						TO_CHAR(moviecomment_regdate,'YYYY/MM/DD HH24:MI:SS') moviecomment_regdate, blindcomment_flag
+		FROM moviecomment
+		WHERE moviecomment_no = #{movieCommentNo} 
+	</select>
+	
+	
+   <select id="getMovieCommentList" parameterType="map" resultMap="movieCommentSelectMap">
+		SELECT * FROM (SELECT inner_table.*, ROWNUM AS row_seq
+										FROM (SELECT moviecomment_no, user_id, movie_no, moviecomment, 
+													TO_CHAR(moviecomment_regdate,'YYYY/MM/DD HH24:MI:SS') moviecomment_regdate, blindcomment_flag
+													FROM moviecomment
+													WHERE movie_no = #{movieNo} ORDER BY moviecomment_regdate DESC)inner_table
+										WHERE ROWNUM &lt; = #{search.endRowNum})	
+		WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}	
+
+	</select> 
+	
+	
+	<select id="getTotalCount" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM moviecomment where movie_no=#{movie.movieNo}
+	</select>
+  
+	
+</mapper>

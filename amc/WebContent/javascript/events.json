@@ -1,0 +1,96 @@
+{
+ 	"monthly": [
+			{
+			"id": 1,
+			"name": "킹스맨",
+			"startdate": "2017-10-01",
+			"enddate": "2017-10-01",
+			"starttime": "12:00",
+			"endtime": "2:00",
+			"color": "#99CCCC",
+			"url": "http://localhost:8080/movie/getMovie?movieNo=10005&menu=preview"
+			},
+			{
+			"id": 2,
+			"name": "남한산성",
+			"startdate": "2017-10-05",
+			"enddate": "2017-10-05",
+			"starttime": "12:00",
+			"endtime": "2:00",
+			"color": "#CC99CC",
+			"url": ""
+			},
+			{
+			"id": 3,
+			"name": "범죄도시",
+			"startdate": "2017-10-07",
+			"enddate": "",
+			"starttime": "",
+			"endtime": "",
+			"color": "orange",
+			"url": "https://www.google.com/"
+			},
+			{
+			"id": 4,
+			"name": "아이캔스피크",
+			"startdate": "2017-10-11",
+			"enddate": "",
+			"starttime": "",
+			"endtime": "",
+			"color": "#666699",
+			"url": "https://www.google.com/"
+			},
+			{
+			"id": 5,
+			"name": "블레이드 러너 2043",
+			"startdate": "2017-10-17",
+			"enddate": "",
+			"starttime": "12:00",
+			"endtime": "02:00",
+			"color": "dark grey",
+			"url": ""
+			},
+			{
+			"id": 6,
+			"name": "Deep 팁",
+			"startdate": "2017-10-20",
+			"enddate": "2017-10-22",
+			"starttime": "",
+			"endtime": "",
+			"color": "#999999",
+			"url": ""
+			},
+			{
+			"id": 7,
+			"name": "주키퍼스 와이프",
+			"startdate": "2017-10-25",
+			"enddate": "",
+			"starttime": "",
+			"endtime": "",
+			"color": "#99CC99",
+			"url": ""
+			},
+			{
+			"id": 8,
+			"name": "희생 부활자",
+			"startdate": "2017-10-28",
+			"enddate": "",
+			"starttime": "",
+			"endtime": "",
+			"color": "#669966",
+			"url": ""
+			},
+			{
+			"id": 9,
+			"name": "넛잡 2",
+			"startdate": "2017-10-29",
+			"enddate": "",
+			"starttime": "",
+			"endtime": "",
+			"color": "#999966",
+			"url": ""
+			}
+		]
+}
+
+

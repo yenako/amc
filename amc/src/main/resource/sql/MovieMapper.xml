@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--	
+	UserMapper.xml :: SQL 를 갖는 MetaData 
+	
+	- MyBatis Framework 은 XML MetaData 를 사용 SQL구문을 관리
+	  (SQL은 xml 을 통해 적절히 캡슐화 되어 애플리케이선 외부로 분리함)
+	- SQL문의 입력(?) / 출력(?)을 매핑한다.  <== 아래의 select element 참조
+ -->		
+ 
+<mapper namespace = "MovieMapper" >
+
+	<resultMap id="movieSelectMap" 			type="movie">
+  		<result property="movieNo" 			column="movie_no"			jdbcType="NUMERIC"/>
+  		<result property="movieRegDate"		column="movie_regdate" 		jdbcType="DATE"/>  		
+  		<result property="openDt" 			column="movie_opendate" 	jdbcType="DATE"/>
+  		<result property="endDt"  			column="movie_enddate" 		jdbcType="DATE"/>
+  		<result property="movieNm" 			column="movie_title" 		jdbcType="VARCHAR"/>
+  		<result property="postUrl" 			column="poster" 			jdbcType="VARCHAR"/>
+  		<result property="directors" 		column="director" 			jdbcType="VARCHAR"/>
+  		<result property="actors"	 		column="actor" 				jdbcType="VARCHAR"/>  
+  		<result property="genres" 			column="genre" 				jdbcType="VARCHAR"/>
+  		<result property="watchGradeNm" 	column="rating" 			jdbcType="VARCHAR"/>
+  		<result property="steelCut" 		column="steelcut" 			jdbcType="VARCHAR"/>  		
+  		<result property="showTm" 			column="runningtime"		jdbcType="VARCHAR"/>  		
+  		<result property="synopsis" 		column="synopsis" 			jdbcType="VARCHAR"/>  	
+  		<result property="trailer" 			column="trailer" 			jdbcType="VARCHAR"/>  	
+  		<result property="maleCnt" 			column="male_count" 		jdbcType="NUMERIC"/>
+  		<result property="femaleCnt" 		column="female_count" 		jdbcType="NUMERIC"/>
+  		<result property="age10s"	 		column="age10s" 			jdbcType="NUMERIC"/>  
+  		<result property="age20s" 			column="age20s" 			jdbcType="NUMERIC"/>
+  		<result property="age30s" 			column="age30s" 			jdbcType="NUMERIC"/>
+  		<result property="age40s" 			column="age40s" 			jdbcType="NUMERIC"/>  		
+  		<result property="age50s" 			column="age50s"				jdbcType="NUMERIC"/>  		
+  		<result property="age60s" 			column="age60s" 			jdbcType="NUMERIC"/>  	
+  		<result property="age60sMore" 		column="age60more" 			jdbcType="NUMERIC"/>  
+
+		<association property="wishList"	resultMap="WishListMapper.wishListSelectMap"/>
+  	
+  		
+  	</resultMap>
+  	
+
+ 
+   	<insert 	id="addMovie" 	 parameterType="movie">
+  		INSERT
+		INTO movie ( movie_no,  movie_regdate, movie_opendate,movie_enddate,
+						 movie_title,poster,director,actor,
+					     genre,rating,runningtime,synopsis,trailer)
+		VALUES (  	seq_movie_no.nextval, sysdate,
+	    <if test="openDt 		 != null">            #{openDt},  							</if>  
+	    		sysdate + 30,
+	    		  #{movieNm},
+	
+		<if test="postUrl   	 != null">			  #{postUrl},       					</if>	
+		<if test="directors 	 != null">			  #{directors},    						</if>
+	
+		<if test="actors    	 != null">			  #{actors},	    					</if>
+				  #{genres},
+		<if test="watchGradeNm   != null">	 		  #{watchGradeNm},  					</if>	
+				  #{showTm},				  
+		<if test="synopsis 		 != null">		 	  #{synopsis},							</if>
+		<if test="trailer 		 != null">			  #{trailer}							</if>	  
+		 )
+  	</insert>
+  	
+  	<update    id="updateSteelCut" parameterType="int">
+  		UPDATE movie
+  		<set>
+  			<if test="steelCut != null">	       steelcut   = #{steelCut}	 </if>
+		</set>
+		WHERE movie_no = #{movieNo}	
+  	</update>
+  			 
+  	
+ 	<insert 	id="addSteelCut" 	 parameterType="movie">
+ 		INSERT
+		INTO movie ( movie_no, movie_opendate,movie_enddate,movie_title,director,poster,
+				 actor,genre,rating,synopsis,trailer)
+		VALUES (  seq_product_prod_no.nextval,
+			  #{openDt},
+			  #{endDt},
+			  #{movieNm},
+			  #{director},
+			  #{postUrl},
+	<if test="actor != null">		  #{actors},   </if>
+	<if test="genre != null">		  #{genres},   </if>
+			  #{watchGradeNm},
+	<if test="synopsis != null">      #{synopsis}, </if>
+	<if test="trailer != null">	 	  #{trailer}   </if>				  
+			   )
+ 	</insert>
+  	
+  	<!-- 해림수정 -->
+  	<select 	id="getMovie" 	parameterType="java.lang.String" resultMap="movieSelectMap" >
+  		SELECT
+		movie_no, 	
+		TO_CHAR(movie_regdate, 'YYYY/MM/DD') movie_regdate,	
+		TO_CHAR(movie_opendate, 'YYYY/MM/DD') movie_opendate, 	
+		TO_CHAR(movie_enddate, 'YYYY/MM/DD') movie_enddate, 		 
+		movie_title, 				
+		director,				
+		poster,
+		actor,
+		genre,
+		runningtime,
+		rating,
+		steelCut,
+		synopsis,
+		trailer,
+		male_count,
+		female_count,
+		age10s,
+		age20s,
+		age30s,
+		age40s,
+		age50s,
+		age60s,
+		age60more			
+		FROM movie   
+		WHERE movie_no = #{movieNo}											
+  	</select>
+  	
+  	
+  	<delete id="deleteMovieBatch" parameterType="java.util.List">
+		DELETE FROM 
+			movie
+		WHERE movie_no in
+			<foreach collection="list" item="movie_no" index="index" open="(" close=")" separator=",">
+			#{movieNo}
+		</foreach>	
+	</delete>   
+	
+	<delete id="deleteMovie" parameterType="int">
+		DELETE FROM 
+			movie
+		WHERE movie_no = #{movieNo}		
+	</delete>   
+	
+  	<update    id="updateMovie" parameterType="movie">
+  		UPDATE movie
+  		<set>
+  			<if test="directors != null">	      director   		 = #{directors},		 </if>
+  			<if test="actors != null">         	  actor  	  		 = #{actors}, 			 </if>
+  			<if test="genres != null">         	  genre  	 		 = #{genres}, 			 </if>
+  			<if test="watchGradeNm != null">      rating  	  		 = #{watchGradeNm},  	 </if>
+  			<if test="openDt != null">         	  movie_opendate  	 = #{openDt},   		 </if>
+  			<if test="showTm != null">         	  runningtime  	  	 = #{showTm},  	 	 	 </if>
+  			<if test="endDt != null">         	  movie_enddate  	 = #{endDt},   		 	 </if>  
+  			<if test="steelCut != null">          steelcut		  	 = #{steelCut},   		 </if>			
+  			<if test="synopsis != null">          synopsis  	  	 = #{synopsis}, 	     </if>
+  			<if test="postUrl != null">           poster  	  		 = #{postUrl}, 			 </if>
+  			<if test="trailer != null">           trailer  	  		 = #{trailer} 			 </if>  			 								
+		</set>
+		WHERE movie_no = #{movieNo}	
+  	</update>
+ 			 	
+	
+	<select id="getMovieList" parameterType="search" resultMap="movieSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM AS row_seq
+		FROM (SELECT movie_no, 
+					 TO_CHAR(movie_regdate, 'YYYY-MM-DD')  movie_regdate, 
+					 TO_CHAR(movie_opendate, 'YYYY-MM-DD') movie_opendate,
+					 TO_CHAR(movie_enddate, 'YYYY-MM-DD') ovie_enddate,
+					 movie_title,
+		             poster,
+		             director,
+		             actor,
+		             genre,
+		             rating,
+		             runningtime,
+		             synopsis,
+		             steelcut,
+	  			     trailer FROM   movie 
+		
+		<if test="searchCondition != null or searchKeyword2 !=null" >
+
+<!-- "searchKeyword2 = 4"번은 현재 상영 영화, "searchKeyword = 5" 상영 예정 영화  -->		
+
+				<if test="searchCondition == 1  and searchKeyword != '' ">
+					WHERE movie_title LIKE '%'||#{searchKeyword}||'%'					
+				</if>
+				
+			
+				<if test="searchCondition == 2 and searchKeyword != '' ">
+					WHERE director LIKE '%${searchKeyword}%'
+				</if>
+				
+				<if test="searchCondition == 3 and searchKeyword !='' ">
+					movie_opendate <![CDATA[<=]]> (to_date(#{searchKeyword}, 'yy/mm/dd')+6) 
+					AND movie_enddate <![CDATA[>=]]> to_date(#{searchKeyword}, 'yy/mm/dd')
+				</if>	
+		</if>
+
+		ORDER BY movie_no ) inner_table
+		WHERE ROWNUM &lt;= #{endRowNum})
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum}
+
+
+	</select>
+	
+	<select id="getMovieList_MovieTitle" parameterType="search" resultMap="movieSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM AS row_seq
+		FROM (SELECT movie_no, 
+					 TO_CHAR(movie_regdate, 'YYYY-MM-DD') movie_regdate, 
+					 TO_CHAR(movie_opendate, 'YYYY-MM-DD') movie_opendate,
+					 TO_CHAR(movie_enddate, 'YYYY-MM-DD') movie_enddate,
+					 movie_title,
+		             poster,
+		             director,
+		             actor,genre,
+		             rating,
+		             runningtime,
+		             synopsis,
+		             steelcut,
+	  			     trailer FROM   movie 
+		
+	 		<if test="searchCondition != null or searchKeyword2 !=null" >
+
+			<!-- "searchKeyword2 = 4"번은 현재 상영 영화, "searchKeyword = 5" 상영 예정 영화  -->		
+
+				<if test="searchCondition == 1"> 
+					 	<if test="searchKeyword != '' and searchKeyword2 == 4">
+							WHERE movie_title LIKE '%'||#{searchKeyword}||'%'
+							AND movie_opendate  <![CDATA[<=]]> to_char(sysdate,'yy/mm/dd') 
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_enddate		
+						</if>	
+					 	<if test="searchKeyword != '' and searchKeyword2 == 5">
+							WHERE movie_title LIKE '%'||#{searchKeyword}||'%'
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_opendate		
+						</if>	
+				</if>
+				
+				<if test="searchCondition != 1">
+						<if test="searchKeyword2 == 4">
+							WHERE movie_opendate  <![CDATA[<=]]> to_char(sysdate,'yy/mm/dd') 
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_enddate
+						</if>
+						<if test="searchKeyword2 == 5">
+							WHERE to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_opendate	
+						</if>
+				</if>	
+			</if>
+
+		ORDER BY movie_no ) inner_table
+		WHERE ROWNUM &lt;= #{endRowNum})
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum}
+
+	</select>
+	
+	 
+	<select id="getMovieList_MovieTitle_Count" parameterType="search" resultType="int">
+		SELECT COUNT(*)
+		FROM(SELECT  movie_no, movie_regdate, movie_opendate,movie_enddate,movie_title,
+	  					poster,director,actor,genre,rating,runningtime,synopsis,steelcut,trailer
+	  					FROM movie
+		
+		<if test="searchCondition != null or searchKeyword2 !=null" >	
+		
+				<if test="searchCondition == 1"> 
+					 	<if test="searchKeyword != '' and searchKeyword2 == 4">
+							WHERE movie_title LIKE '%'||#{searchKeyword}||'%'
+							AND movie_opendate  <![CDATA[<=]]> to_char(sysdate,'yy/mm/dd') 
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_enddate		
+						</if>	
+					 	<if test="searchKeyword != '' and searchKeyword2 == 5">
+							WHERE movie_title LIKE '%'||#{searchKeyword}||'%'
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_opendate		
+						</if>	
+				</if>
+				
+		
+				<if test="searchCondition != 1">
+						<if test="searchKeyword2 == 4">
+							WHERE movie_opendate  <![CDATA[<=]]> to_char(sysdate,'yy/mm/dd') 
+							AND movie_opendate  <![CDATA[<=]]> to_char(sysdate,'yy/mm/dd') 
+							AND to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_enddate		
+						</if>
+						<if test="searchKeyword2 == 5">
+							WHERE to_char(sysdate,'yy/mm/dd') <![CDATA[<]]> movie_opendate	
+						</if>
+				</if>	
+		
+			
+		</if>) countTable
+	</select>
+	 
+	 <select id="dupMovieChk" parameterType="search" resultType="int">
+		SELECT COUNT(*)
+		FROM(SELECT  movie_no, movie_regdate, movie_opendate,movie_enddate,movie_title,
+	  					poster,director,actor,genre,rating,runningtime,synopsis,steelcut,trailer
+	  					FROM movie
+		
+		<if test="searchCondition !=null">
+		
+				<if test="searchCondition == 1 and searchKeyword !='' ">
+					WHERE movie_title = #{searchKeyword} 
+				</if>
+			
+			
+		</if>) countTable
+	</select>
+	 
+
+	<select id="getTotalCount" parameterType="search" resultType="int">
+		SELECT COUNT(*)
+		FROM(SELECT  movie_no, movie_regdate, movie_opendate,movie_enddate,movie_title,
+	  					poster,director,actor,genre,rating,runningtime,synopsis,steelcut,trailer
+	  					FROM movie
+		
+		<if test="searchCondition !=null">
+		
+				<if test="searchCondition == 1 and searchKeyword !='' ">
+					WHERE movie_title LIKE '%'||#{searchKeyword}||'%'
+				</if>
+				<if test="searchCondition == 2 and searchKeyword !='' ">
+					WHERE director LIKE '%'||#{searchKeyword}||'%'
+				</if>
+			
+		</if>) countTable
+	</select>
+	
+	
+	
+	<select id="uniMovieList" parameterType="search" resultMap="movieSelectMap">
+	SELECT out_table.*, NVL((male_count),0)+NVL((female_count),0) AS booking_count
+	FROM(SELECT *
+	        FROM (   SELECT inner_table.* , ROWNUM AS row_seq
+	                    FROM      (   SELECT movie_no, movie_title, poster, to_char(movie_opendate, 'yy/mm/dd') movie_opendate, 
+	                    					 runningtime, rating, genre, actor, director, male_count, female_count 
+	                                  FROM   movie 
+	                                   <if test="searchCondition != null">
+	                                    <where>
+	                                       <if test="searchCondition == 3 and searchKeyword !='' ">
+	                                           movie_opendate <![CDATA[<=]]> (to_date(#{searchKeyword}, 'yy/mm/dd')+6) 
+	                                           AND movie_enddate <![CDATA[>=]]> to_date(#{searchKeyword}, 'yy/mm/dd')
+	                                       </if>
+	                                       <if test="searchCondition == 4 and searchKeyword !='' ">
+	                                           movie_opendate <![CDATA[<=]]> (to_date(#{searchKeyword}, 'yy/mm/dd')) 
+	                                           AND movie_enddate <![CDATA[>=]]> to_date(#{searchKeyword}, 'yy/mm/dd')
+	                                       </if>                                                                              
+	                                    </where>
+	                                   </if>
+	                                   <if test="searchCondition == null">
+	                                    <where>
+	                                       		movie_title LIKE '%${searchKeyword}%'                      
+	                                    </where>
+	                                   </if>
+	                                 ORDER BY movie_no DESC ) inner_table
+	              ) ORDER BY row_seq) out_table
+	ORDER BY booking_count desc, movie_no
+	</select>
+	
+	<!-- 예나 사용 sql 생성/ 영화예매 1단계용 -->
+	 <select id="screenMovieList" parameterType="search" resultMap="movieSelectMap">
+		SELECT m.movie_no, m.movie_title, m.rating, m.genre, m.movie_opendate 
+		FROM   movie m, screencontent s
+		WHERE
+			s.preview_flag = 'N'
+			AND m.movie_no = s.movie_no
+			AND s.screen_opentime <![CDATA[>=]]> SYSDATE
+		ORDER BY m.movie_no DESC
+	</select> 
+	
+	<!--  상영등록이 되어 있지않을때 사용, temporary mapper
+	<select id="screenMovieList" parameterType="search" resultMap="movieSelectMap">
+		SELECT m.movie_no, m.movie_title
+		FROM   movie m
+		ORDER BY m.movie_no DESC
+	</select>-->
+	
+	
+	
+	
+	
+	<update  id="updateStatistic" parameterType="search">
+  		UPDATE movie 
+  		<set>
+  			<if test='searchKeyword == "1"'> male_count= (SELECT (nvl(male_count,0)+${currentPage}) </if>
+  			<if test='searchKeyword == "2"'> female_count= (SELECT (nvl(female_count,0)+${currentPage}) </if>
+  			FROM movie WHERE movie_no =  #{searchCondition}), 
+  			<if test='searchKeyword2 == "1" or searchKeyword2 == "0"'> age10s= (SELECT (nvl(age10s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "2"'> age20s= (SELECT (nvl(age20s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "3"'> age30s= (SELECT (nvl(age30s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "4"'> age40s= (SELECT (nvl(age40s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "5"'> age50s= (SELECT (nvl(age50s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "6"'> age60s= (SELECT (nvl(age60s,0)+ ${currentPage})  </if>
+ 			<if test='searchKeyword2 == "7"'> age60more= (SELECT (nvl(age60more,0)+${currentPage})   </if>
+		</set>
+		FROM movie WHERE movie_no =  #{searchCondition} )  
+		WHERE movie_no = #{searchCondition}	
+  	</update>
+  	
+  	 <!--  해림 사용  sql 생성-->
+	 	<select id="getMovieList2" parameterType="search" resultMap="movieSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM AS row_seq
+		FROM (SELECT movie_no, movie_regdate,TO_CHAR(movie_opendate, 'YYYY/MM/DD') movie_opendate, TO_CHAR(movie_enddate, 'YYYY/MM/DD') movie_enddate, 	movie_title,
+		             poster,director,actor,genre,rating,runningtime,synopsis,steelcut,
+	  			     trailer FROM   movie 		
+	  			     WHERE movie_enddate >= SYSDATE
+		<if test="searchCondition != null">
+				<if test="searchCondition == 1 and searchKeyword != '' ">
+					AND movie_title LIKE '%'||#{searchKeyword}||'%'
+				</if>
+				<if test="searchCondition == 2 and searchKeyword != '' ">
+					AND director LIKE '%${searchKeyword}%'
+				</if>
+			 
+		</if>
+
+		ORDER BY movie_opendate) inner_table
+		WHERE ROWNUM &lt;= #{endRowNum})
+		WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum}
+
+	</select>
+	 <!--  해림 사용  sql 생성-->
+		<select id="getTotalCount2" parameterType="search" resultType="int">
+		SELECT COUNT(*)
+		FROM(SELECT  movie_no, movie_regdate, movie_opendate,movie_enddate,movie_title,
+	  					poster,director,actor,genre,rating,runningtime,synopsis,steelcut, trailer FROM   movie 		
+	  			     WHERE movie_enddate >= SYSDATE
+		
+		<if test="searchCondition !=null">
+		
+				<if test="searchCondition == 1 and searchKeyword !='' ">
+					and movie_title LIKE '%'||#{searchKeyword}||'%'
+				</if>
+				<if test="searchCondition == 2 and searchKeyword !='' ">
+					and director LIKE '%'||#{searchKeyword}||'%'
+				</if>
+			
+		</if>) countTable
+	</select>
+  	
+		   
+ </mapper>

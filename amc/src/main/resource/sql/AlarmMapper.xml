@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AlarmMapper">
+ 	
+ 	<resultMap id="alarmSelectMap" type="alarm">
+  			<result property="alarmNo" column="alarm_no" jdbcType="NUMERIC"/>
+  			<result property="alarmRegDate" column="alarm_regdate" jdbcType="DATE"/>
+  			<result property="alarmSeatNo" column="alarmseat_no" jdbcType="VARCHAR"/>
+  			<result property="alarmFlag" column="alarm_flag" jdbcType="CHAR"/>
+  			
+  			<association property="user"  javaType="user">
+				<id property="userId" 			column="user_id" 			jdbcType="VARCHAR"/>
+				<result property="userName"			column="user_name" 			jdbcType="VARCHAR"/>
+				<result property="password" 		column="password" 			jdbcType="VARCHAR"/>
+				<result property="role" 			column="role" 				jdbcType="VARCHAR"/>		
+				<result property="addr" 			column="addr" 				jdbcType="VARCHAR"/>
+				<result property="addrDetail" 		column="addr_detail"		jdbcType="VARCHAR"/>
+				<result property="userRegDate" 		column="user_regdate" 		jdbcType="DATE"/>
+				<result property="birth" 			column="birth" 				jdbcType="DATE"/>
+				<result property="phone1" 			column="phone1" 			jdbcType="VARCHAR"/>
+				<result property="phone2" 			column="phone2" 			jdbcType="VARCHAR"/>
+				<result property="phone3" 			column="phone3" 			jdbcType="VARCHAR"/>
+				<result property="calendarType" 	column="sl_yn" 				jdbcType="CHAR"/>
+				<result property="gender" 			column="gender" 			jdbcType="CHAR"/>
+				<result property="deleteUserFlag" 	column="delete_user_flag" 	jdbcType="CHAR"/>		
+				<result property="uuId" 			column="uuid" 			jdbcType="VARCHAR"/>	
+			</association>
+			
+			<association property="screenContent"  javaType="screenContent">
+				<id property="screenContentNo" column="screencontent_no" jdbcType="INTEGER"/>
+				<result property="movie.movieNo" column="movie_no" jdbcType="NUMERIC"/>
+				<result property="movie.postUrl" column="poster" jdbcType="VARCHAR"/>
+				<result property="movie.movieNm" column="movie_title" jdbcType="VARCHAR"/>
+				<result property="screenDate" column="screen_date" jdbcType="DATE"/>
+				<result property="screenOpenTime" column="screen_openTime" jdbcType="DATE" />
+				<result property="screenEndTime" column="screen_endTime" jdbcType="DATE" />
+				<result property="screenTheater" column="screen_theater" jdbcType="CHAR" />
+				<result property="ticketPrice" column="ticket_price" jdbcType="INTEGER" />
+				<result property="previewFlag" column="preview_flag" jdbcType="VARCHAR" />
+				<result property="previewTitle" column="preview_title" jdbcType="VARCHAR" />
+				<result property="ticketOpenDate" column="ticket_opendate" jdbcType="DATE" />
+				<result property="inviteActor" column="invite_Actor" jdbcType="VARCHAR" />
+				<result property="screenContentRegDate" column="screencontent_regdate" jdbcType="DATE" />
+				<result property="regDate" column="user_reg_date" jdbcType="DATE"/>
+		</association>
+	</resultMap>
+	
+	<insert 	id="addAlarm"	parameterType="alarm" >
+	 	INSERT
+		INTO alarm	( alarm_no, screencontent_no, user_id, alarm_regdate,
+					<if test="alarmSeatNo != null"> 
+					alarmseat_no, 
+					</if>
+					alarm_flag)
+		VALUES	 	( seq_alarm_no.nextval, #{screenContent.screenContentNo}, #{user.userId}, SYSDATE, 
+					<if test="alarmSeatNo != null">	
+					#{alarmSeatNo},
+					</if> 
+					#{alarmFlag} )
+	</insert>
+	 
+	<delete id="deleteAlarm" parameterType="alarm">
+		DELETE
+		FROM alarm
+		<if test="user.userId != null "> <!-- switch용 -->
+			WHERE screencontent_no = #{screenContent.screenContentNo} AND user_id = #{user.userId}
+			<if test="alarmSeatNo != null">
+				AND alarm_flag = 'C'
+			</if>
+			<if test="alarmSeatNo == null">
+				AND alarm_flag = 'O'
+			</if>
+		</if>
+		<if test="user.userId == null"> <!-- 마이페이지 리스트 용 -->
+			WHERE alarm_no = #{alarmNo}
+		</if>
+	</delete>
+	
+	<delete id="deleteAfterPush" parameterType="alarm">
+		DELETE
+		FROM alarm
+		<if test="alarmSeatNo != null">
+		WHERE alarm_flag = 'C' AND screencontent_no = #{screenContent.screenContentNo} AND alarmseat_no = #{alarmSeatNo}
+		</if>
+		<if test="alarmSeatNo == null">
+		WHERE alarm_flag = 'O' AND screencontent_no = #{screenContent.screenContentNo}
+		</if>
+	</delete>
+	 
+	<select id="checkOpenAlarm"	parameterType="alarm" resultType="string">
+	 	SELECT count(*) 
+	 	FROM alarm 
+	 	WHERE screencontent_no = #{screenContent.screenContentNo} AND 
+	 		  user_id = #{user.userId} AND alarm_flag = 'O'
+	</select>
+	
+	<select id="checkCancelAlarm"	parameterType="alarm" resultType="string">
+	 	SELECT count(*) 
+	 	FROM alarm 
+	 	WHERE screencontent_no = #{screenContent.screenContentNo} AND 
+			  user_id = #{user.userId} AND alarm_flag = 'C'
+	</select>
+	
+	<select id="checkDuplicationSeat"	parameterType="alarm" resultType="string">
+	 	SELECT alarmseat_no 
+	 	FROM alarm 
+	 	WHERE screencontent_no = #{screenContent.screenContentNo} 
+	 	AND user_id = #{user.userId} AND alarm_flag = 'C' AND alarmseat_no = #{alarmSeatNo}
+	</select>
+	
+	
+	<select  id="getPushOpenAlarmList"  parameterType="map"	 resultMap="alarmSelectMap">
+		
+		<!-- sms용 id,uuid 뽑기 -->
+		<if test="search.searchCondition == 'openAlarm'">
+			SELECT inner.alarm_no, inner.screencontent_no, inner.user_id, inner.alarm_regdate, inner.alarm_flag, u.phone1, u.phone2, u.phone3, u.uuid
+			FROM (SELECT * 
+				  FROM alarm WHERE screencontent_no = ${search.searchKeyword} AND alarm_flag = 'O')inner, users u
+			WHERE inner.user_Id = u.user_Id
+			ORDER BY inner.alarm_regdate
+		</if>
+
+ 	</select>
+ 	
+ 	<select  id="getPushCancelAlarmList"  parameterType="map"	 resultMap="alarmSelectMap">
+		
+		<!-- sms용 id,uuid 뽑기 -->
+		<if test="search.searchCondition == 'cancelAlarm'">
+			SELECT inner.alarm_no, inner.screencontent_no, inner.user_id, inner.alarm_regdate, 
+				   inner.alarm_flag, u.phone1, u.phone2, u.phone3, u.uuid, inner.alarmseat_no
+			FROM (SELECT * 
+				  FROM alarm WHERE screencontent_no = ${search.searchKeyword} AND alarm_flag = 'C' AND alarmseat_no = #{alarm.alarmSeatNo})inner, users u
+			WHERE inner.user_Id = u.user_Id
+			ORDER BY inner.alarm_regdate
+		</if>
+		
+ 	</select>
+ 	
+ 	
+ 	<select  id="getAlarmList"  parameterType="map"	 resultMap="alarmSelectMap">
+ 	SELECT *							
+	FROM	(SELECT 	inner_table.* , ROWNUM AS row_seq				
+		 	 FROM 		(SELECT m.movie_title, s.preview_title, s.screen_opentime, to_char(s.ticket_opendate, 'YYYY-MM-DD HH24:MI:SS') ticket_opendate, 
+		 	 					s.screen_theater, s.invite_actor, s.preview_flag, a.alarmseat_no, 
+		 	 					a.alarm_regdate, a.alarm_no, m.poster , m.movie_no
+						FROM alarm a, screencontent s, movie m 
+						WHERE a.screencontent_no = s.screencontent_no AND s.movie_no = m.movie_no 
+							  AND user_id = #{user.userId}
+							  <if test='alarmFlag == "C"'>
+							  AND alarm_flag = 'C' 
+							  </if>
+							  <if test='alarmFlag == "O"'>
+							  AND alarm_flag = 'O'
+							  </if> 
+						ORDER BY a.alarm_regdate DESC) inner_table
+						WHERE ROWNUM &lt;=#{search.endRowNum} )
+	WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}
+ 	</select>
+ 	
+ 	<select id="getTotalCount" parameterType="map" resultType="int">
+ 		SELECT COUNT(*) 
+		FROM alarm 
+		WHERE user_id = #{user.userId}
+		  <if test='alarmFlag == "C"'>
+		  AND alarm_flag = 'C' 
+		  </if>
+		  <if test='alarmFlag == "O"'>
+		  AND alarm_flag = 'O'
+		  </if> 
+	</select>
+	
+	
+	<select  id="getCancelAlarmOfScreenContentNo"  parameterType="map"	 resultMap="alarmSelectMap">
+		SELECT *
+		FROM alarm
+		WHERE user_id = #{user.userId} AND screencontent_no = #{screenContent.screenContentNo} AND alarm_flag = 'C'
+ 	</select>
+
+</mapper>

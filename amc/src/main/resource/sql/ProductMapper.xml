@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+ 					
+<mapper namespace="ProductMapper">
+  	
+  	<resultMap id="productSelectMap" type="com.amc.service.domain.Product">
+  			<result property="prodNo" 			column="prod_no" 		jdbcType="NUMERIC"/>
+  			<result property="prodPrice" 		column="prod_price" 	jdbcType="NUMERIC"/>
+  			<result property="totalStock" 		column="total_stock" 	jdbcType="NUMERIC"/>
+  			<result property="salesStock" 		column="sales_stock" 	jdbcType="NUMERIC"/> 
+  			<result property="stock" 			column="stock" 			jdbcType="NUMERIC"/>
+  			<result property="expiryDate" 		column="expiry_date" 	jdbcType="NUMERIC"/>
+  			<result property="prodImage" 		column="prod_image" 	jdbcType="VARCHAR"/>
+  			<result property="prodName" 		column="prod_name" 		jdbcType="VARCHAR"/>
+  			<result property="prodDetail" 		column="prod_detail" 	jdbcType="VARCHAR"/>
+  			<result property="prodSetInfo" 		column="prod_set_info" 	jdbcType="VARCHAR"/>
+  			<result property="salesOpenDate" 	column="sales_opendate" jdbcType="DATE"/>
+  			<result property="salesEndDate" 	column="sales_enddate" 	jdbcType="DATE"/>
+  			<result property="prodRegDate" 		column="prod_regdate" 	jdbcType="DATE"/>
+  			<result property="prodType" 		column="prod_type" 		jdbcType="CHAR"/>
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	<insert id="addProduct" parameterType="product">
+		INSERT
+		INTO product 
+		VALUES ( seq_product_prod_no.nextval, 
+					#{prodType}, 
+					#{prodImage}, 
+					#{prodName},
+					#{prodDetail},
+					#{prodSetInfo},
+					#{salesOpenDate}, 
+					#{salesEndDate}, 
+					#{prodPrice},
+					#{totalStock},
+					#{salesStock},  
+					#{stock}, 
+					SYSDATE,
+					#{expiryDate}
+					)
+	</insert>
+	
+	<!-- SQL : SELECT ONE -->	
+	<select id="getProduct" parameterType="map" resultMap="productSelectMap">
+		SELECT	
+			p.prod_no, p.prod_name, p.prod_detail, p.prod_regdate, p.prod_price, p.prod_image, p.stock-NVL(COUNT(t.IMP_ID),0) stock, 
+			p.prod_type, p.stock, p.prod_set_info, p.sales_opendate, p.sales_enddate, p.total_stock, 
+			(p.stock-NVL(COUNT(t.IMP_ID),0))/p.total_stock*100 sales_stock
+		FROM product p, transaction t
+		<where>
+			p.prod_no=t.prod_no(+)
+			AND p.prod_no=#{prodNo}
+		</where>
+		GROUP BY p.prod_no, p.prod_name, p.prod_detail, p.prod_regdate, p.prod_price, p.prod_image, p.stock, p.prod_type, 
+				p.stock, p.prod_set_info, p.sales_opendate, p.sales_enddate, p.total_stock, p.sales_stock
+	</select>
+	
+ 	<!-- SQL : UPDATE -->		
+	<update id="updateProduct" parameterType="Product">
+		UPDATE product
+		<set>
+			<if test="prodName!=null">			prod_name=#{prodName},</if>
+			<if test="prodDetail!=null">		prod_detail=#{prodDetail},</if>
+			<if test="prodSetInfo!=null">		prod_set_info=#{prodSetInfo},</if>
+												stock=stock+	<if test="stock==0">0</if>
+																<if test="stock!=0">#{stock}</if>,
+												sales_opendate=#{salesOpenDate},
+												sales_enddate=#{salesEndDate},
+												prod_price =	<if test="prodPrice==0">null</if>
+																<if test="prodPrice!=0">#{prodPrice}</if>,
+			<if test="prodImage!=''">			prod_image=#{prodImage}</if>
+		</set>
+		WHERE prod_no=#{prodNo}
+	</update>
+	
+	<sql id="productList">
+		SELECT
+			p.prod_type, p.prod_no, p.prod_name, p.prod_price, p.prod_regdate, p.prod_detail, p.stock-NVL(COUNT(t.IMP_ID),0) stock, 
+ 			p.prod_image, p.sales_opendate, p.sales_enddate, p.total_stock, 
+ 			<if test='(searchKeyword2 == "search")'>(p.stock-NVL(COUNT(t.IMP_ID),0))/p.total_stock*100 sales_stock</if>
+ 			<if test='(searchKeyword2 == "manage")'>100-(p.stock-NVL(COUNT(t.IMP_ID),0))/p.total_stock*100 sales_stock</if>
+ 		FROM product p, transaction t
+		<where>
+			p.prod_no=t.prod_no(+) AND p.sales_enddate>=SYSDATE
+			<if test='(searchProdType == "G")'>
+				AND p.prod_type='G'
+			</if>
+			<if test='(searchProdType == "S")'>
+				AND p.prod_type='S'
+			</if>
+			
+ 			<if test='searchKeyword!="" and searchKeyword !=null' >
+  				<if test="searchCondition==1">
+  						AND p.prod_name	like '%'|| #{searchKeyword}||'%'
+  				</if> 
+	  			<if test="searchCondition==2">
+  						AND p.prod_price = #{searchKeyword}
+  				</if>  				
+  			</if>
+ 			
+		</where>		
+		GROUP BY p.prod_type, p.prod_no, p.prod_name, p.prod_price, p.prod_regdate, p.prod_detail, p.stock, t.prod_no, p.prod_image, p.sales_opendate, p.sales_enddate, p.total_stock, p.sales_stock
+		<trim prefix="HAVING" prefixOverrides="AND | OR">
+			<if test="!stockView">
+				p.stock-NVL(COUNT(t.IMP_ID),0) > 0
+			</if>
+		</trim>
+		ORDER BY
+		<if test="orderCondition != null and orderCondition != ''">
+			<if test="orderCondition == 1">prod_name</if>
+			<if test="orderCondition == 2">prod_price</if> ${orderOption},
+		</if>
+			p.prod_no DESC
+	</sql>
+	
+	<!-- SQL : SELECT LIST -->
+	<select id="getGoodsList" parameterType="map" resultMap="productSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM row_seq
+		       FROM ( <include refid="productList"/> ) inner_table
+		       WHERE ROWNUM <![CDATA[<]]>=${currentPage}*${pageSize} )
+		WHERE row_seq BETWEEN ${(currentPage-1)*pageSize+1} AND ${currentPage*pageSize}
+	</select>
+ 	
+	<!-- SQL : SELECT LIST -->
+	<select id="getSnackList" parameterType="map" resultMap="productSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM row_seq
+		       FROM ( <include refid="productList"/> ) inner_table
+		       WHERE ROWNUM <![CDATA[<]]>=${currentPage}*${pageSize} )
+		WHERE row_seq BETWEEN ${(currentPage-1)*pageSize+1} AND ${currentPage*pageSize}
+ 	</select>
+	
+ 	<!-- SQL : SELECT ROW Count -->	 
+	<select  id="getTotalCount"  parameterType="search"	 resultType="int">
+		SELECT
+		COUNT(*)
+		FROM ( <include refid="productList"/> )									 
+	</select>  
+	
+	<!-- SQL : UPDATE (DeleteUser)-->
+	<update	id="deleteProduct"	parameterType="int" >
+		UPDATE product
+	   		<set>
+		   		prod_type = 'D'
+	   		</set>
+	   	WHERE prod_no = #{prodNo}
+	</update>
+	
+	<!-- SQL : SELECT LIST -->
+  	<select id="uniProductList" parameterType="string" resultMap="productSelectMap">
+		SELECT prod_no, prod_regdate, prod_type, prod_name, prod_price, prod_image
+		FROM Product
+		WHERE prod_name LIKE '%${value}%' AND prod_type != 'D'
+	</select>
+	
+	<!-- SQL : SELECT LIST -->
+  	<select id="mainProductList" parameterType="_int" resultMap="productSelectMap">
+
+		<!-- 최근등록 상품 가지고오기 (들어오는 int값이 1이면 신상품) -->
+		<if test='(value == 1)'> 
+			SELECT outer.* 
+			FROM	(SELECT inner.*, ROWNUM rn
+				 			FROM(SELECT prod_no, prod_type, prod_name, prod_price, prod_image
+								 FROM product
+								 WHERE prod_type != 'D'
+			ORDER BY prod_regdate DESC)inner)outer
+			WHERE outer.rn BETWEEN '1' AND '3'
+		</if>
+		
+		<!-- 탑3 상품 가지고오기 (들어오는 int값이 2면 탑3 상품) -->
+		<if test='(value == 2)'>
+			SELECT outer.* 
+			FROM	(SELECT inner.*, ROWNUM rn
+				 			FROM(SELECT prod_no, prod_type, prod_name, prod_price, prod_image
+								 FROM product
+								 WHERE prod_type != 'D'
+			ORDER BY sales_stock DESC)inner)outer
+			WHERE outer.rn BETWEEN '1' AND '3'
+		</if>
+	</select>
+	
+	<select id="newestProduct" resultMap="productSelectMap">
+		SELECT
+			p1.prod_no, p1.prod_name, p1.prod_image
+		FROM
+			product p1, product p2
+		GROUP BY
+			p1.prod_no, p1.prod_name, p1.prod_image
+		HAVING
+			p1.prod_no IN MAX(p2.prod_no)
+	</select>
+	
+	<select id="hottestProduct" resultMap="productSelectMap">
+		SELECT
+			p.prod_no, p.prod_name, p.prod_image, it.tc stock
+		FROM
+			product p, (SELECT
+							t.prod_no, ROWNUM itr, t.tc
+						FROM
+							(SELECT 
+								prod_no, count(*) tc
+							 FROM
+							 	transaction
+							 GROUP BY
+							 	prod_no
+							 ORDER BY tc DESC
+							)t
+						)it
+		WHERE
+			p.prod_no IN (it.prod_no)
+		ORDER BY
+			it.itr
+	</select>
+  
+</mapper>

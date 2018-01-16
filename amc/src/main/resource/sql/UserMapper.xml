@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserMapper">
+ 	
+
+	<resultMap id="userSelectMap" type="user">
+		<result property="userNo"			column="user_no"			jdbcType="NUMERIC"/>
+		<result property="userId" 			column="user_id" 			jdbcType="VARCHAR"/>
+		<result property="userName"			column="user_name" 			jdbcType="VARCHAR"/>
+		<result property="password" 		column="password" 			jdbcType="VARCHAR"/>
+		<result property="role" 			column="role" 				jdbcType="VARCHAR"/>		
+		<result property="addr" 			column="addr" 				jdbcType="VARCHAR"/>
+		<result property="addrDetail" 		column="addr_detail"		jdbcType="VARCHAR"/>
+		<result property="userRegDate" 		column="user_regdate" 		jdbcType="DATE"/>
+		<result property="birth" 			column="birth" 				jdbcType="DATE"/>
+		<result property="phone1" 			column="phone1" 			jdbcType="VARCHAR"/>
+		<result property="phone2" 			column="phone2" 			jdbcType="VARCHAR"/>
+		<result property="phone3" 			column="phone3" 			jdbcType="VARCHAR"/>
+		<result property="calendarType" 	column="sl_yn" 				jdbcType="CHAR"/>
+		<result property="gender" 			column="gender" 			jdbcType="CHAR"/>
+		<result property="deleteUserFlag" 	column="deleteuser_flag" 	jdbcType="CHAR"/>		
+		<result property="uuId" 			column="uuid" 			jdbcType="VARCHAR"/>	
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	<insert 	id="addUser"		parameterType="user" >
+	 	INSERT
+		INTO users	( user_id, user_name, 
+						<if test="password!=null">password, deleteuser_flag,</if>
+						<if test='(password==null and snsLogin == "naver")'>deleteuser_flag,</if>
+						<if test='(password==null and snsLogin == "kakao")'>deleteuser_flag,</if>
+						role, birth, phone1, phone2, phone3, sl_yn, gender, addr, addr_detail, user_regdate, user_no) 
+		VALUES	 	( #{userId}, #{userName}, 
+						<if test="password!=null">#{password}, 'Y',</if>
+						<if test='(password==null and snsLogin == "naver")'>'R',</if>
+						<if test='(password==null and snsLogin == "kakao")'>'O',</if>
+						'user', #{birth}, #{phone1}, #{phone2}, #{phone3}, #{calendarType}, #{gender}, #{addr}, #{addrDetail}, SYSDATE, seq_user_no.nextval)
+	 </insert>
+	 
+	<!-- SQL : INSERT -->
+<!-- 	<insert 	id="snsAddUser"		parameterType="user" >
+	 	INSERT
+		INTO users	( user_id, user_name, role, birth, phone1, phone2, phone3, sl_yn, gender, addr, addr_detail, user_regdate, user_no) 
+		VALUES	 	( #{userId}, #{userName}, 'user', #{birth}, #{phone1}, #{phone2}, #{phone3}, #{calendarType}, #{gender}, #{addr}, #{addrDetail}, SYSDATE, seq_user_no.nextval)
+	 </insert>
+ -->	 
+	 <!-- SQL : UPDATE (DeleteUser)-->
+	 <update	id="deleteUser"	parameterType="user" >
+	   	UPDATE users
+	   		<set>
+		   		deleteuser_flag = 'Y',
+		   		role = 'not'
+	   		</set>
+	   	WHERE user_id = #{userId} and user_name = #{userName} and password = #{password}
+	 </update>
+	 
+ 	 <!-- SQL : UPDATE (DeleteUser)-->
+	 <update	id="snsDeleteUser"	parameterType="user" >
+	   	UPDATE users
+	   		<set>
+		   		deleteuser_flag = 'Y',
+		   		role = 'not'
+	   		</set>
+	   	WHERE user_id = #{userId} and user_name = #{userName} 
+	 </update>
+	 
+	 <!-- SQL : SELECT ONE -->
+	 <select 	id="deleteCheck"	parameterType="user"	resultMap="userSelectMap">
+		SELECT deleteuser_flag, role 		
+		FROM users 
+		WHERE user_name = #{userName} and 
+			  user_id = #{userId}  
+			  <if test="password!=''"> and password = #{password}</if>
+	 </select>
+	 
+	 <!-- SQL : SELECT ONE -->
+	 <select 	id="getUser"	parameterType="string"	resultMap="userSelectMap">
+		SELECT
+		user_id, user_name, birth, sl_yn, gender, password, role, phone1, phone2, phone3, user_regdate, addr, addr_detail, user_no, deleteuser_flag  		
+		FROM users 
+		WHERE user_id = #{value}
+	 </select>
+	 
+ 
+ 	<!-- SQL : SELECT LIST -->
+	<select  id="getUserList"  parameterType="search"	resultMap="userSelectMap">
+	  	SELECT *
+	  	FROM (	SELECT inner_table.* , ROWNUM AS row_seq
+	  			FROM (	SELECT user_id , user_name, addr, role 
+						FROM users
+							<if test="searchCondition != null">
+								<where>
+									<if test="searchCondition == 1 and searchKeyword !='' ">
+												user_id  LIKE '%'||#{searchKeyword}||'%'
+									</if>
+								
+									<if test="searchCondition == 2 and searchKeyword !='' ">
+											user_name LIKE '%'||#{searchKeyword}||'%'
+									</if>
+								</where>
+							</if>
+						ORDER BY user_id ) inner_table
+						WHERE ROWNUM &lt;= #{endRowNum} )
+				WHERE row_seq BETWEEN #{startRowNum} AND #{endRowNum} 
+	 </select>
+ 
+ 	 <!-- SQL : UPDATE -->
+	 <update	id="updateUser"	parameterType="user" >
+	   	UPDATE users
+	   		<set>
+		   		user_name 	= #{userName},
+		   		<if test="password !=null">password = #{password},</if>
+				phone1		= #{phone1},
+				phone2		= #{phone2},
+				phone3		= #{phone3},
+				addr		= #{addr},
+				addr_detail	= #{addrDetail}		
+	   		</set>
+	   	WHERE user_id = #{userId}
+	 </update>
+
+	 <!-- SQL : SELECT ONE -->
+	 <select 	id="getId"	parameterType="user"	resultMap="userSelectMap">
+		SELECT
+		user_id, password, role, deleteuser_flag 		
+		FROM users 
+		WHERE user_name = #{userName} and phone1 = #{phone1} and phone2 = #{phone2} and phone3 = #{phone3} 
+		<if test="birth!=null">and birth = #{birth}</if>
+		<if test="userId!=null">and user_id = #{userId}</if>
+	 </select>
+	 
+ 	 <!-- SQL : SELECT ONE -->
+	 <select 	id="getPhone"	parameterType="user"	resultMap="userSelectMap">
+		SELECT
+		user_id 		
+		FROM users 
+		WHERE phone1 = #{phone1} and phone2 = #{phone2} and phone3 = #{phone3}
+	 </select>
+
+	<!-- SQL : SELECT ROW Count -->	 
+	<select  id="getTotalCount"  parameterType="search"	 resultType="int">
+	  	SELECT COUNT(*)
+	  	FROM (	SELECT user_id , user_name, addr, role
+				FROM users
+					<if test="searchCondition != null">
+						<where>
+							<if test="searchCondition == 1 and searchKeyword !='' ">
+					 			user_id  LIKE '%'||#{searchKeyword}||'%'
+					 		
+							</if>
+						
+							<if test="searchCondition == 2 and searchKeyword !='' ">
+						 
+						 			user_name LIKE '%'||#{searchKeyword}||'%'
+							</if>
+						</where>
+					</if> 
+				) countTable						
+	 </select> 
+	 
+	 <update	id="updateUuid"	parameterType="user" >
+	   	UPDATE users
+	   		<set>
+		   		uuid 	= #{userNo},
+	   		</set>
+	   	WHERE user_id = #{userId}
+	 </update>
+</mapper>

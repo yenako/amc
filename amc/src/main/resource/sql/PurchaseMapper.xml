@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+		
+<mapper namespace="PurchaseMapper">
+	
+	<resultMap id="purchaseSelectMap" type="purchase">		
+		<result property="orderNo" 				column="ORDER_NO" 			jdbcType="CHAR"/>
+		<result property="receiverName" 		column="RECEIVER_NAME" 		jdbcType="VARCHAR"/>
+		<result property="paymentOption" 		column="PAYMENT_OPTION" 	jdbcType="VARCHAR"/>
+		<result property="addrDlvy" 			column="ADDR_DLVY" 			jdbcType="VARCHAR"/>		
+		<result property="addrDlvyDetail" 		column="ADDR_DLVYDETAIL" 	jdbcType="VARCHAR"/>
+		<result property="orderStock"			column="ORDER_STOCK" 		jdbcType="NUMERIC"/>
+		<result property="receiverPhone1" 		column="RECEIVER_PHONE1" 	jdbcType="VARCHAR"/>	
+		<result property="receiverPhone2" 		column="RECEIVER_PHONE2" 	jdbcType="VARCHAR"/>
+		<result property="receiverPhone3" 		column="RECEIVER_PHONE3" 	jdbcType="VARCHAR"/>
+		<result property="totalProdPrice" 		column="TOTAL_PRODPRICE" 	jdbcType="NUMERIC"/>
+		<result property="tranCode" 			column="TRAN_CODE" 			jdbcType="CHAR"/>
+		<result property="orderRegDate"			column="ORDER_REGDATE" 		jdbcType="DATE"/>
+		<result property="impId"				column="IMP_ID" 			jdbcType="VARCHAR"/>
+		<!-- <result property="purchaseCount" 		column="purchase_count" 	jdbcType="NUMERIC"/> -->
+		
+ 		<association property="buyer"	 	resultMap="UserMapper.userSelectMap" 		javaType="User">
+			<id property="userId" 			column="user_id" 							jdbcType="VARCHAR" />
+		</association>
+	
+		<association property="purchaseProd" 	resultMap="ProductMapper.productSelectMap"	javaType="Product">
+			<id property="prodNo"				column="prod_no" 							jdbcType="NUMERIC"/>
+		</association> 
+	</resultMap>
+	
+	<sql id="addUnit">
+		#{receiverName},
+		#{paymentOption},
+		#{addrDlvy},
+		#{addrDlvyDetail},
+		#{orderStock},
+		#{receiverPhone1},
+		#{receiverPhone2},
+		#{receiverPhone3},
+		#{totalProdPrice},
+		#{tranCode},
+		SYSDATE,
+		#{purchaseProd.prodNo},		
+		#{buyer.userId},
+	</sql>
+	
+		
+	<!-- SQL : INSERT -->
+	<insert id="addPurchase" parameterType="purchase">
+	 	INSERT 
+		INTO transaction 
+		VALUES	(	seq_transaction_order_no.nextval, <include refid="addUnit"/> seq_transaction_IMP_ID_no.nextval, #{purchaseProd.prodImage} )
+ 	</insert>
+ 	
+	<insert id="addPurchaseCount" parameterType="purchase">
+		INSERT
+		INTO transaction
+		VALUES	(	seq_transaction_order_no.CURRVAL, <include refid="addUnit"/> seq_transaction_IMP_ID_no.nextval, #{purchaseProd.prodImage}	)
+	</insert>
+	
+	<!-- SQL : SELECT ONE -->
+	<select id="getPurchase" parameterType="purchase" resultMap="purchaseSelectMap">
+		SELECT
+			t.IMP_ID, p.prod_name, t.prod_no, t.user_id user_id, t.payment_option, t.receiver_name,
+			t.receiver_phone1,t.receiver_phone2,t.receiver_phone3, t.ADDR_DLVY, t.ADDR_DLVYDETAIL, t.order_regdate, 
+			t.tran_code, COUNT(t2.IMP_ID) purchase_count, p.stock-NVL(vt.cnt,0) stock, t.ORDER_STOCK
+		FROM
+			transaction t, transaction t2, product p, (SELECT prod_no AS prod_no, COUNT(*) AS cnt FROM transaction GROUP BY prod_no) vt
+		<where>
+			<if test="impId != 0">t.IMP_ID = #{impId}</if>
+			AND p.prod_no=t.prod_no AND t.order_no=t2.order_no AND p.prod_no=vt.prod_no
+		</where>
+		GROUP BY
+			t.IMP_ID, p.prod_name, t.prod_no, t.user_id, t.payment_option, t.receiver_name, 
+			t.receiver_phone1, t.receiver_phone2, t.receiver_phone3, t.ADDR_DLVY, t.ADDR_DLVYDETAIL, t.order_regdate, 
+			t.tran_code, t2.order_no, p.stock, vt.cnt, t.ORDER_STOCK
+	</select>
+	
+ 	<delete id="deletePurchaseForUpdate" parameterType="int">
+		DELETE
+			transaction
+		WHERE
+			order_no = (SELECT order_no FROM transaction WHERE IMP_ID = #{value}) 
+			AND IMP_ID NOT IN #{value}
+	</delete>
+	
+	<!-- SQL : UPDATE -->			
+	<update id="updatePurchase" parameterType="purchase">
+		UPDATE transaction
+		<set>
+    		<if test="paymentOption !=null">	PAYMENT_OPTION		=#{paymentOption},	</if>
+  			<if test="receiverName !=null">	  	RECEIVER_NAME		=#{receiverName},	</if>
+  			<if test="receiverPhone1 !=null">  	RECEIVER_PHONE1		=#{receiverPhone1},	</if> 
+  			<if test="receiverPhone2 !=null">  	RECEIVER_PHONE2		=#{receiverPhone2},	</if>
+  			<if test="receiverPhone3 !=null">  	RECEIVER_PHONE3		=#{receiverPhone3},	</if>
+  			<if test="addrDlvy !=null">			ADDR_DLVY			=#{addrDlvy},		</if> 
+  			<if test="addrDlvyDetail !=null">	ADDR_DLVYDETAIL		=#{addrDlvyDetail},	</if>	  			 						  			
+  			<if test="tranCode != null"> 		TRAN_CODE			=#{tranCode} 		</if> 	 	
+		</set>
+		WHERE IMP_ID = #{impId}  		
+	</update>
+	
+	<insert id="insertPurchaseForUpdate" parameterType="com.amc.service.domain.Purchase">
+		INSERT INTO 
+			transaction
+		VALUES
+		(	seq_transaction_IMP_ID_no.nextval,
+			(SELECT order_no FROM transaction WHERE IMP_ID=#{impId}),
+			(SELECT prod_no FROM transaction WHERE IMP_ID=#{impId}),
+			#{buyer.userId},
+			#{paymentOption}, 
+			#{receiverName},
+			#{receiverPhone1},
+			#{receiverPhone2},
+			#{receiverPhone3},
+			#{addrDlvy},
+			#{addrDlvyDetail},
+			(SELECT tran_code FROM transaction WHERE IMP_ID=#{impId}),
+			(SELECT ORDER_REGDATE FROM transaction WHERE IMP_ID=#{impId})	)
+	</insert>
+
+	
+<!-- 		<insert id="insertPurchaseForUpdate" parameterType="com.amc.service.domain.Purchase">
+		INSERT INTO 
+			transaction
+		VALUES
+		(	seq_transaction_IMP_ID_no.nextval,
+			(SELECT order_no FROM transaction WHERE IMP_ID=#{impId}),
+			(SELECT prod_no FROM transaction WHERE IMP_ID=#{impId}),
+			#{buyer.userId},
+			#{paymentOption},
+			#{receiverName},
+			#{receiverPhone1},
+			#{receiverPhone2},
+			#{receiverPhone3},
+			#{addrDlvy},
+			#{addrDlvyDetail},
+			(SELECT tran_code FROM transaction WHERE IMP_ID=#{impId}),
+			(SELECT ORDER_REGDATE FROM transaction WHERE IMP_ID=#{impId})	)
+	</insert>
+ -->	
+		
+	<sql id="purchaseList">
+		SELECT 
+			p.prod_name, t.ADDR_DLVY, t.ADDR_DLVYDETAIL, t.receiver_phone1, t.receiver_phone2,t.receiver_phone3, t.tran_code, 
+			t.IMP_ID, t.prod_no, COUNT(t2.IMP_ID) ORDER_STOCK
+		FROM 
+			transaction t, transaction t2, product p
+		WHERE 
+			t.prod_no=p.prod_no AND t.order_no=t2.order_no AND t.user_id=#{searchCondition}
+		GROUP BY 
+			p.prod_name, t.ADDR_DLVY, t.ADDR_DLVYDETAIL, t.receiver_phone1, t.receiver_phone2,t.receiver_phone3, t.tran_code, 
+			t.IMP_ID, t.prod_no, t2.order_no
+		HAVING 
+			t.IMP_ID=MIN(t2.IMP_ID)
+		ORDER BY 
+			t.IMP_ID DESC
+	</sql>
+	
+	<sql id="saleList">
+		SELECT 
+			t.IMP_ID, p.prod_name, t.user_id, t.tran_code, t.ORDER_REGDATE, p.prod_no, COUNT(t2.IMP_ID) ORDER_STOCK
+		FROM 
+			transaction t, product p , transaction t2
+		WHERE 
+			t.prod_no=p.prod_no(+)  AND t.order_no=t2.order_no 
+		GROUP BY
+			t.IMP_ID, p.prod_name, t.user_id , t.tran_code, t.ORDER_REGDATE, p.prod_no, t2.order_no
+		HAVING
+			t.IMP_ID IN MIN(t2.IMP_ID)
+		ORDER BY 
+			IMP_ID DESC
+	</sql>
+
+	<select id="getPurchaseList" parameterType="com.amc.common.Search" resultMap="purchaseSelectMap">
+		SELECT *
+		FROM ( SELECT inner_table.*, ROWNUM row_seq
+		       FROM ( 
+					<if test="searchKeyword == 'purchaseList'"><include refid="purchaseList"/></if> 
+					<if test="searchKeyword == 'saleList'"><include refid="saleList"/></if>
+			       ) inner_table
+		       WHERE ROWNUM <![CDATA[<=]]>${currentPage}*${pageSize} )
+		WHERE row_seq BETWEEN ${(currentPage-1)*pageSize+1} AND ${currentPage*pageSize}
+	</select>
+	
+	<select id="getTotalCount" parameterType="com.amc.common.Search" resultType="int">
+		SELECT
+		COUNT(*)
+		FROM  
+		(	<if test="searchKeyword == 'purchaseList'"><include refid="purchaseList"/></if>
+			<if test="searchKeyword == 'saleList'"><include refid="saleList"/></if>	)
+			 
+	</select>	
+</mapper>

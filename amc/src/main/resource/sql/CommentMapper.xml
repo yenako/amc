@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CommentMapper">
+ 	
+ 	<!-- Purpose of resultMap is mapping resultSet of SQL -->
+
+  	<resultMap id ="commentSelectMap" type="comment">
+  	
+  		<result property="commentNo" 		column="comment_no" 	 jdbcType="NUMERIC"/>
+  		<result property="freeBoard.freeBoardNo" 		column="freeboard_no" 	 jdbcType="NUMERIC"/>
+  		<result property="user.userId" 			column="user_id" 		 jdbcType="VARCHAR"/>
+  		<result property="commentRegDate" 	column="comment_regdate" jdbcType="DATE"/>
+  		<result property="parentCommentNo" 	column="parent_no" 		 jdbcType="NUMERIC"/>
+  		<result property="commentContent" 	column="comment_content" jdbcType="VARCHAR"/>
+ 
+  	</resultMap>	
+  	
+  	  
+   <insert id="addFreeBoardComment" parameterType="comment">
+	INSERT INTO freeboardcomment(comment_no, freeboard_no, user_id, comment_regDate, parent_no, comment_level, comment_content)
+	VALUES(seq_freeboard_comment_no.nextval, #{freeBoard.freeBoardNo}, #{user.userId}, SYSDATE, 
+	<if test="parentCommentNo!=0">
+		#{parentCommentNo}, 1,
+	</if>
+	<if test="parentCommentNo ==0">
+		seq_freeboard_comment_no.currval, 0,
+	</if>
+		#{commentContent})
+	</insert>
+	
+	<update id="updateFreeBoardComment" parameterType="comment">
+	UPDATE freeboardcomment
+		<set>
+			comment_content = #{commentContent}
+		</set>
+		WHERE comment_no = #{commentNo}
+ 		
+	</update>
+	
+
+	
+	<delete id="deleteFreeBoardComment" parameterType="int" >
+		DELETE FROM freeboardcomment
+		WHERE comment_no = #{comment_no}
+		AND 1>=(SELECT COUNT(*) FROM freeboardcomment WHERE parent_no = #{commentContent}) 
+	</delete>
+	
+	
+	<delete id="deleteFreeBoardCommentAll" parameterType="int" >
+		DELETE FROM freeboardcomment
+		WHERE freeboard_no = #{freeBoard.freeBoardNo}
+
+	</delete>
+	
+
+	
+   <select id="getFreeBoardCommentList" parameterType="map" resultMap="commentSelectMap">
+		SELECT * FROM (SELECT inner_table.*, ROWNUM AS row_seq
+										FROM (SELECT comment_no, freeboard_no, user_id, TO_CHAR(comment_regDate,'YYYY/MM/DD HH24:MI:SS') comment_regDate, 
+										parent_no, comment_content, comment_level
+													FROM freeboardcomment
+													WHERE freeboard_no = #{freeBoardNo} ORDER BY parent_no DESC, comment_level, comment_no DESC)inner_table
+										WHERE ROWNUM &lt; = #{search.endRowNum})	
+		WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}	
+
+	</select> 
+	
+	
+	<select id="getFreeBoardTotalCount" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM freeboardcomment where freeboard_no=#{freeBoard.freeBoardNo}
+	</select>
+  
+	
+
+</mapper>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE configuration
+ 		 PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+ 		"http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+  <settings>
+	<setting name="callSettersOnNulls" value="false"/>
+  </settings>	
+  
+<typeAliases>
+	<typeAlias alias="search" 		 type="com.amc.common.Search" />
+	<typeAlias alias="booking" 		 type="com.amc.service.domain.Booking" />
+	<typeAlias alias="comment" 		 type="com.amc.service.domain.Comment" />
+	<typeAlias alias="freeBoard" 	 type="com.amc.service.domain.FreeBoard" />
+	<typeAlias alias="movie" 		 type="com.amc.service.domain.Movie" />
+	<typeAlias alias="movieAPI" 	 type="com.amc.service.domain.MovieAPI" />
+	<typeAlias alias="alarm" 		 type="com.amc.service.domain.Alarm" />
+	<typeAlias alias="product" 		 type="com.amc.service.domain.Product" />
+	<typeAlias alias="purchase"		 type="com.amc.service.domain.Purchase" />
+	<typeAlias alias="screenContent" type="com.amc.service.domain.ScreenContent" />	
+	<typeAlias alias="user" 		 type="com.amc.service.domain.User" />
+	<typeAlias alias="wishList" 	 type="com.amc.service.domain.WishList" />
+	<typeAlias alias="movieComment" 	 type="com.amc.service.domain.MovieComment" />
+</typeAliases>
+	
+  <mappers>
+    <mapper resource="sql/BookingMapper.xml"/>
+    <mapper resource="sql/CommentMapper.xml"/>
+    <mapper resource="sql/FreeBoardMapper.xml"/>
+    <mapper resource="sql/MovieMapper.xml"/>
+    <mapper resource="sql/MovieApiMapper.xml"/>
+    <mapper resource="sql/AlarmMapper.xml"/>
+    <mapper resource="sql/ProductMapper.xml"/>
+    <mapper resource="sql/PurchaseMapper.xml"/>
+    <mapper resource="sql/ScreenContentMapper.xml"/>  
+    <mapper resource="sql/UserMapper.xml"/>
+    <mapper resource="sql/WishListMapper.xml"/>
+      <mapper resource="sql/MovieCommentMapper.xml"/>
+  </mappers>
+
+</configuration>

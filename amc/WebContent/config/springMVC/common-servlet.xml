@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:p="http://www.springframework.org/schema/p" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+							http://www.springframework.org/schema/beans/spring-beans.xsd
+								 
+								 http://www.springframework.org/schema/context 
+								 http://www.springframework.org/schema/context/spring-context.xsd
+								 
+								 http://www.springframework.org/schema/mvc 
+								 http://www.springframework.org/schema/mvc/spring-mvc.xsd
+
+								 http://www.springframework.org/schema/task
+								 http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+
+	<context:component-scan base-package="com.amc.web">
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Service" />
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Repository" />
+	</context:component-scan>
+
+	<!-- 스프링 스케줄러 -->
+	<task:annotation-driven />
+
+
+	<!-- <task:scheduler id="scheduler" pool-size="10"/> <task:executor id="executor" 
+		pool-size="10"/> -->
+
+
+	<!-- <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" 
+		> <property name="order" value="0" /> <property name="interceptors" ref="logonCheckInterceptor"/> 
+		</bean> -->
+
+	<!-- <bean id="logonCheckInterceptor" class="com.amc.common.web.LogonCheckInterceptor"/> -->
+
+	<mvc:annotation-driven />
+
+	<!-- <mvc:interceptors> <mvc:interceptor> <mvc:mapping path="/user/**"/> 
+		<bean class="com.amc.common.web.LogonCheckInterceptor" /> </mvc:interceptor> 
+		</mvc:interceptors> -->
+
+	<!-- 홈페이지 메인 인덱스가 / 이기때문에 각 폴더가 URL로 주소가 아닌 폴더로 인식해서 들어가기 위해서 설정 -->
+	<mvc:resources mapping="/css/**" location="/css/" />
+	<mvc:resources mapping="/images/**" location="/images/" />
+	<mvc:resources mapping="/javascript/**" location="/javascript/" />
+	<mvc:resources mapping="/video/**" location="/video/" />
+
+	<!-- semantic UI 적용 -->
+	<mvc:resources mapping="/semantic/**" location="/semantic/" />
+
+	<!-- z_YJ : 부트스트랩테마 적용을 위해서 설정 -->
+	<mvc:resources mapping="/cinema/**" location="/cinema/" />
+
+	<!-- z_YJ : 파노라마를 위해 적용 -->
+	<mvc:resources mapping="/dist/**" location="/dist/" />
+	<mvc:resources mapping="/demo/**" location="/demo/" />
+
+	<!-- new theme -->
+	<mvc:resources mapping="/fonts/**" location="/fonts/" />
+	<mvc:resources mapping="/js/**" location="/js/" />
+	<mvc:resources mapping="/revolution/**" location="/revolution/" />
+
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver" />
+
+	<!-- :: Client 에 보여줄 Data(Model) 랜더링 / view 화면 Navigation 하는ViewResolver 
+		:: 아래와 같이 서술적 기술 Test 후 주석처리해서 Test 할것 :: Default / Zero Configuration -->
+
+
+	<!-- 파일업로드 컨트롤러 -->
+	<!-- <bean class="com.amc.web.community.CommunityController" /> -->
+
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="5242880000"></property>
+		<!-- <property name="uploadTempDir" ref="fileSystemResource"/> -->
+	</bean>
+
+	<!-- <bean id="fileSystemResource" class="org.springframework.core.io.FileSystemResource"> 
+		<constructor-arg> <value>..\\Users\\KO\\git\\07.Model2MVCShop(stu)\\07.Model2MVCShop(stu)\\WebContent\\images\\uploadFiles</value> 
+		</constructor-arg> </bean> -->
+
+	<bean id="exceptionResolver"
+		class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="java.lang.NullPointerException">/common/nullError.jsp</prop>
+				<prop key="java.lang.NumberFormatException">/common/numberFormatError.jsp</prop>
+			</props>
+		</property>
+		<property name="defaultErrorView" value="/common/error.jsp" />
+	</bean>
+
+	<bean id="jsonView"
+		class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
+		<property name="contentType" value="text/plain;charset=UTF-8" />
+	</bean>
+
+	<!-- Ajax multifile upload 에서 사용됨 <bean id="jsonMapper" class="com.fasterxml.jackson.databind.ObjectMapper" 
+		/> <bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView"> 
+		<property name="objectMapper" ref="jsonMapper" /> </bean> -->
+
+	<!-- 이메일 관련 -->
+	<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="smtp.gmail.com" />
+		<property name="port" value="587" />
+		<property name="username" value="bitcampamc@gmail.com" />
+		<property name="password" value="dkdlxl403" />
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.smtp.ssl.trust">smtp.gmail.com</prop>
+				<prop key="mail.smtp.starttls.enable">true</prop>
+				<prop key="mail.smtp.auth">true</prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="userServiceImpl" class="com.amc.service.user.impl.UserServiceImpl">
+		<property name="javaMailSender" ref="javaMailSender" />
+	</bean>
+
+
+	<bean id="uploadFilePath" class="org.springframework.core.io.FileSystemResource">
+		<constructor-arg>
+			<value>C:\Users\bang\git\amc\amc\WebContent\images\uploadFiles\</value>
+		</constructor-arg>
+	</bean>
+
+
+	<!-- 커뮤니티 업로드 -->
+	<!--<bean id="communityUploadFile" class="org.springframework.core.io.FileSystemResource"> 
+		<constructor-arg> <value>C:\Users\장해림\git\amc\amc\WebContent\images\community</value> 
+		</constructor-arg> </bean> -->
+
+</beans>

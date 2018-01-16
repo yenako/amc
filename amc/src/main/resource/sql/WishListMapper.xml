@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="WishListMapper">
+ 	
+  	<resultMap id="wishListSelectMap" 		type="wishList">
+  		<result property="wishNo" 							column="wish_no"			jdbcType="NUMERIC"/>
+  		<result property="user.userId"						column="user_id" 			jdbcType="VARCHAR"/>
+  		<result property="movie.movieNm" 					column="movie_title" 		jdbcType="VARCHAR"/>
+  		<result property="movie.postUrl" 					column="poster" 			jdbcType="VARCHAR"/>
+  		<result property="movie.movieNo" 					column="movie_no" 			jdbcType="NUMERIC"/>
+  		<result property="movie.openDt" 					column="movie_opendate" 	jdbcType="VARCHAR"/>
+  		<result property="wishFlag"  						column="wish_flag"	 		jdbcType="VARCHAR"/>
+  		<result property="wishRegDate"  					column="wish_regdate" 		jdbcType="DATE"/>
+  	</resultMap>
+	
+	<select id="checkWishList"	parameterType="wishList" resultType="string">
+	 	SELECT count(*) 
+	 	FROM wishlist 
+	 	WHERE movie_no = #{movie.movieNo} AND  user_id = #{user.userId} AND wish_flag = #{wishFlag}
+	</select>
+	
+	<insert id="addWishList"	parameterType="wishList" >
+	 	INSERT
+		INTO wishlist	( wish_no, user_id, movie_no, wish_flag, wish_regdate)
+		VALUES	 	( seq_wish_no.nextval, #{user.userId}, #{movie.movieNo}, #{wishFlag}, SYSDATE)
+	</insert>
+	
+	<delete id="deleteWishList" parameterType="wishList">
+		DELETE
+		FROM wishlist
+		<if test="movie.movieNo != '0' and user.userId != '' and wishFlag != ''">
+		WHERE movie_no = #{movie.movieNo} AND user_id = #{user.userId} AND wish_flag = #{wishFlag}
+		</if>
+		<if test="wishNo != ''">
+		WHERE wish_no = ${wishNo}
+		</if>
+	</delete>
+	
+ 	<select  id="getWishList"  parameterType="map"	 resultMap="wishListSelectMap">
+ 	SELECT *							
+	FROM	(SELECT 	inner_table.* , ROWNUM AS row_seq				
+		 	 FROM 		(SELECT w.wish_no, to_char(w.wish_regdate, 'YYYY-MM-DD HH24:MI') wish_regdate, w.wish_flag,
+		 	 					m.poster, m.movie_no, m.movie_title, to_char(m.movie_opendate, 'YYYY-MM-DD') movie_opendate
+						FROM wishlist w, movie m 
+						WHERE w.movie_no = m.movie_no  AND user_id = #{user.userId}) inner_table
+			 WHERE ROWNUM &lt;=#{search.endRowNum} )
+	WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}
+ 	</select>
+ 	
+ 	<select  id="getPreviewWishList"  parameterType="map"	 resultMap="wishListSelectMap">
+ 	SELECT *							
+	FROM	(SELECT 	inner_table.* , ROWNUM AS row_seq				
+		 	 FROM 		(SELECT w.wish_no, to_char(w.wish_regdate, 'YYYY-MM-DD HH24:MI') wish_regdate, w.wish_flag,s.movie_no
+						FROM wishlist w, screencontent s 
+						WHERE w.movie_no = s.movie_no  AND user_id = #{user.userId}) inner_table
+			 WHERE ROWNUM &lt;=#{search.endRowNum} )
+	WHERE row_seq BETWEEN #{search.startRowNum} AND #{search.endRowNum}
+ 	</select>
+	
+	<select id="getTotalCount" parameterType="map" resultType="int">
+ 		SELECT COUNT(*) 
+		FROM wishlist
+		WHERE user_id = #{user.userId}
+	</select>
+	
+ 	<select  id="getAllWishList"  parameterType="map"	 resultMap="wishListSelectMap">desc wishlist
+ 	SELECT w.wish_no, w.wish_regdate, w.wish_flag,
+		   m.poster, m.movie_no, m.movie_title
+	FROM wishlist w, movie m 
+	WHERE w.movie_no = m.movie_no  AND user_id = #{user.userId}
+ 	</select>
+ 	
+ 	
+</mapper>
